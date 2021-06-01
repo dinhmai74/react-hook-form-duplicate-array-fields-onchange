@@ -1,9 +1,8 @@
 // import { yupResolver } from '@hookform/resolvers/yup'
 import { toNestError } from '@hookform/resolvers'
 import { forEach, get, isEmpty } from 'lodash'
-import React, { useCallback, useContext, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { appendErrors, Controller, useFieldArray, useForm } from 'react-hook-form'
-import { v4 } from 'uuid'
 import * as yup from 'yup'
 import './form.css'
 
@@ -118,10 +117,6 @@ const formSchema = {
   firstName: yup.string().required('form.required_message'),
 }
 
-const fieldsSchema = yup.object().shape({
-  test: yup.array().of(yup.object().shape(formSchema).notDuplicate('firstName')),
-})
-
 export function Form() {
   const validationSchema = useMemo(
     () =>
@@ -145,6 +140,8 @@ export function Form() {
     },
   })
 
+  const { isDirty, isSubmitting } = formState
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'test',
@@ -152,14 +149,15 @@ export function Form() {
   })
 
   const handleAppend = () => {
-    const id = v4()
     append(
-      { fieldId: id, firstName: null, lastName: null },
+      { firstName: null },
       {
         shouldFocus: true,
       },
     )
   }
+
+  const isSubmitBtnDisabled = !isEmpty(errors) || !isDirty || isSubmitting
 
   return (
     <form onSubmit={handleSubmit((data) => console.log(data))}>
@@ -174,18 +172,9 @@ export function Form() {
                 defaultValue={item.firstName} // make sure to set up defaultValue
               />
 
-              <input
-                hidden
-                {...register(`test.${index}.fieldId`)}
-                defaultValue={item.fieldId} // make sure to set up defaultValue
-              />
-              {/* {errors?.[`test[${index}].firstName`] && (
-                <p className="text-xs">{errors[`test[${index}].firstName`]?.message}</p>
-              )} */}
               {get(errors, `test.${index}.firstName.message`) && (
                 <p className="text-xs">{get(errors, `test.${index}.firstName.message`)}</p>
               )}
-              {/* <input {...register('lastName')} /> */}
             </div>
 
             <button type="button" onClick={() => remove(index)}>
@@ -197,7 +186,7 @@ export function Form() {
       <button type="button" onClick={handleAppend}>
         append
       </button>
-      <input type="submit" />
+      <input type="submit" disabled={isSubmitBtnDisabled} />
       <br />
       {JSON.stringify(formState?.isValid)}
     </form>
